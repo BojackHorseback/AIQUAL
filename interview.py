@@ -18,7 +18,7 @@ elif "claude" in config.MODEL.lower():
     import anthropic
 else:
     raise ValueError(
-        "Model does not contain 'gpt' or 'claude'; unable to determine API."
+        "Model does not contain 'gpt' or 'claude'; unable to determine API. TEST"
     )
 
 # Set page title and icon
