@@ -287,7 +287,7 @@ client = Client(auth)
 
 # Save interview transcript to Box
 def save_to_box(file_path, file_name):
-    folder_id = 'your_box_folder_id'  # Set your Box folder ID where you want to save files
+    folder_id = '306134958001'  # Set your Box folder ID where you want to save files
     folder = client.folder(folder_id).get()
     with open(file_path, "rb") as file:
         folder.upload(file, file_name)
