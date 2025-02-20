@@ -9,41 +9,6 @@ from boxsdk import OAuth2, Client
 import os
 import config
 
-# Box app credentials
-CLIENT_ID = os.getenv('BOX_CLIENT_ID')
-CLIENT_SECRET = os.getenv('BOX_CLIENT_SECRET')
-
-def authenticate_box():
-    """Authenticate with Box using OAuth2."""
-    oauth2 = OAuth2(
-        client_id=CLIENT_ID,
-        client_secret=CLIENT_SECRET,
-    )
-    auth_url, csrf_token = oauth2.get_authorization_url('http://localhost:8501/')
-    st.write(f"Please authorize the application by visiting: {auth_url}")
-    auth_code = st.text_input("Enter the authorization code:")
-    if auth_code:
-        access_token, refresh_token = oauth2.authenticate(auth_code)
-        client = Client(oauth2)
-        return client
-    return None
-
-def save_interview_data(client, username, folder_id='0'):
-    """Save interview data to Box."""
-    folder = client.folder(folder_id).get()
-    file_name = f"{username}_interview.txt"
-    with open(file_name, 'w') as f:
-        f.write("Interview data goes here.")
-    with open(file_name, 'rb') as f:
-        folder.upload_stream(f, file_name)
-    os.remove(file_name)
-
-# Authenticate and save data
-box_client = authenticate_box()
-if box_client:
-    save_interview_data(box_client, 'test_user')
-
-
 
 # Load API library
 if "gpt" in config.MODEL.lower():
@@ -81,11 +46,11 @@ if not os.path.exists(config.BACKUPS_DIRECTORY):
     os.makedirs(config.BACKUPS_DIRECTORY)
 
 
-# Initialise session state
+# Initialize session state
 if "interview_active" not in st.session_state:
     st.session_state.interview_active = True
 
-# Initialise messages list in session state
+# Initialize messages list in session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -314,3 +279,22 @@ if st.session_state.interview_active:
                             config.TRANSCRIPTS_DIRECTORY, st.session_state.username
                         )
                         time.sleep(0.1)
+
+# Save to Box
+# Box API setup
+auth = OAuth2(config.BOX_CLIENT_ID, config.BOX_CLIENT_SECRET, access_token=config.BOX_ACCESS_TOKEN)
+client = Client(auth)
+
+# Save interview transcript to Box
+def save_to_box(file_path, file_name):
+    folder_id = 'your_box_folder_id'  # Set your Box folder ID where you want to save files
+    folder = client.folder(folder_id).get()
+    with open(file_path, "rb") as file:
+        folder.upload(file, file_name)
+
+# Example of saving the transcript
+file_name = f"interview_transcript_{st.session_state.start_time_file_names}.txt"
+file_path = os.path.join(config.TRANSCRIPTS_DIRECTORY, file_name)
+
+# Save file to Box
+save_to_box(file_path, file_name)
