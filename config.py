@@ -104,9 +104,3 @@ BOX_APP_TOKEN = os.getenv("BOX_APP_TOKEN")  # Securely load App Token from envir
 # Avatars displayed in the chat interface
 AVATAR_INTERVIEWER = "\U0001F393"
 AVATAR_RESPONDENT = "\U0001F9D1\U0000200D\U0001F4BB"
-
-# config.py
-
-BOX_APP_TOKEN = os.getenv("BOX_APP_TOKEN")  # Securely load App Token from environment variable
-
-
