@@ -283,8 +283,15 @@ if st.session_state.interview_active:
 
 # Save to Box
 # Box API setup
-auth = OAuth2(config.BOX_CLIENT_ID, config.BOX_CLIENT_SECRET, access_token=config.BOX_ACCESS_TOKEN)
+#auth = OAuth2(config.BOX_CLIENT_ID, config.BOX_CLIENT_SECRET, access_token=config.BOX_ACCESS_TOKEN)
+auth = OAuth2(
+    client_id=config.BOX_CLIENT_ID,
+    client_secret=config.BOX_CLIENT_SECRET,
+    access_token=config.BOX_ACCESS_TOKEN  # Only needed for App Token auth
+)
+
 client = Client(auth)
+
 
 # Save interview transcript to Box
 def save_to_box(file_path, file_name):
