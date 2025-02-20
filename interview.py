@@ -5,7 +5,7 @@ from utils import (
     check_if_interview_completed,
     save_interview_data,
 )
-from boxsdk import OAuth2, Client
+from boxsdk import Client, JWTAuth
 from pathlib import Path
 import os
 import config
@@ -274,45 +274,23 @@ if st.session_state.interview_active:
                             username=st.session_state.username,
                             transcripts_directory=config.TRANSCRIPTS_DIRECTORY,
                             times_directory=config.TIMES_DIRECTORY,
+                            file_name_addition_transcript=f"_final_transcript_{st.session_state.start_time_file_names}",
+                            file_name_addition_time=f"_final_time_{st.session_state.start_time_file_names}",
                         )
+                        final_transcript_stored = True
 
-                        final_transcript_stored = check_if_interview_completed(
-                            config.TRANSCRIPTS_DIRECTORY, st.session_state.username
-                        )
-                        time.sleep(0.1)
+                    break  # Breaking out of inner loop, as interview is over
 
-# Save to Box
-# Box API setup
-#auth = OAuth2(config.BOX_CLIENT_ID, config.BOX_CLIENT_SECRET, access_token=config.BOX_ACCESS_TOKEN)
-auth = OAuth2(
-    client_id=config.BOX_CLIENT_ID,
-    client_secret=config.BOX_CLIENT_SECRET,
-    access_token=config.BOX_ACCESS_TOKEN  # Only needed for App Token auth
-)
+        # Always save the transcript when an interview is over
+        if not st.session_state.interview_active:
+            # Initialize Box API client with JWT authentication
+            auth = JWTAuth.from_settings_file(config.BOX_JWT_CONFIG_PATH)
+            client = Client(auth)
 
-client = Client(auth)
+            # Define folder and file path
+            folder = client.folder(config.BOX_FOLDER_ID).get()
+            file_path = Path(config.TRANSCRIPTS_DIRECTORY) / f"{st.session_state.username}_interview_transcript.txt"
 
-
-# Save interview transcript to Box
-def save_to_box(file_path, file_name):
-    folder_id = '306134958001'  # Set your Box folder ID where you want to save files
-    folder = client.folder(folder_id).get()
-    with open(file_path, "rb") as file:
-        folder.upload(file, file_name)
-
-# Example of saving the transcript
-file_name = f"interview_transcript_{st.session_state.start_time_file_names}.txt"
-file_path = Path(config.TRANSCRIPTS_DIRECTORY) / file_name
-#file_path = os.path.join(config.TRANSCRIPTS_DIRECTORY, file_name)
-
-
-
-Path(config.TRANSCRIPTS_DIRECTORY).mkdir(parents=True, exist_ok=True)
-Path(config.TIMES_DIRECTORY).mkdir(parents=True, exist_ok=True)
-Path(config.BACKUPS_DIRECTORY).mkdir(parents=True, exist_ok=True)
-
-
-
-
-# Save file to Box
-save_to_box(file_path, file_name)
+            # Upload interview transcript to Box
+            file = folder.upload(file_path)
+            st.markdown(f"Interview transcript saved to Box: {file.name}")
