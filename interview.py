@@ -294,7 +294,17 @@ def save_to_box(file_path, file_name):
 
 # Example of saving the transcript
 file_name = f"interview_transcript_{st.session_state.start_time_file_names}.txt"
-file_path = os.path.join(config.TRANSCRIPTS_DIRECTORY, file_name)
+file_path = Path(config.TRANSCRIPTS_DIRECTORY) / file_name
+#file_path = os.path.join(config.TRANSCRIPTS_DIRECTORY, file_name)
+
+
+
+Path(config.TRANSCRIPTS_DIRECTORY).mkdir(parents=True, exist_ok=True)
+Path(config.TIMES_DIRECTORY).mkdir(parents=True, exist_ok=True)
+Path(config.BACKUPS_DIRECTORY).mkdir(parents=True, exist_ok=True)
+
+
+
 
 # Save file to Box
 save_to_box(file_path, file_name)
