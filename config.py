@@ -99,7 +99,6 @@ LOGINS = False
 TRANSCRIPTS_DIRECTORY = "../data/transcripts/"
 TIMES_DIRECTORY = "../data/times/"
 BACKUPS_DIRECTORY = "../data/backups/"
-BOX_APP_TOKEN = os.getenv("BOX_APP_TOKEN")  # Securely load App Token from environment variable
 
 # Avatars displayed in the chat interface
 AVATAR_INTERVIEWER = "\U0001F393"
