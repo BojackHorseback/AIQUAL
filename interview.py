@@ -98,7 +98,7 @@ with col2:
         quit_message = "You have cancelled the interview."
         st.session_state.messages.append({"role": "assistant", "content": quit_message})
         save_interview_data(
-            st.session_state.username,
+           # st.session_state.username,
             config.TRANSCRIPTS_DIRECTORY,
             config.TIMES_DIRECTORY,
         )
