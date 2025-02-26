@@ -1,16 +1,12 @@
 import streamlit as st
 import time
-import os
-import config
-
 from utils import (
-   # check_password,
+    check_password,
     check_if_interview_completed,
     save_interview_data,
 )
-from boxsdk import OAuth2, Client
-from datetime import datetime
-
+import os
+import config
 
 # Load API library
 if "gpt" in config.MODEL.lower():
@@ -29,23 +25,15 @@ else:
 st.set_page_config(page_title="Interview", page_icon=config.AVATAR_INTERVIEWER)
 
 # Check if usernames and logins are enabled
-#if config.LOGINS:
+if config.LOGINS:
     # Check password (displays login screen)
- #   pwd_correct, username = check_password()
-    #if not pwd_correct:
-     #   st.stop()
-    #else:
-     #   st.session_state.username = username
-#else:
-#st.session_state.username = "testaccount"
-
-
-# Get the current date and time in a readable format
-current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-# Set username with the current date and time appended
-st.session_state.username = f"testaccount_{current_time}"
-
+    pwd_correct, username = check_password()
+    if not pwd_correct:
+        st.stop()
+    else:
+        st.session_state.username = username
+else:
+    st.session_state.username = "testaccount"
 
 # Create directories if they do not already exist
 if not os.path.exists(config.TRANSCRIPTS_DIRECTORY):
@@ -56,11 +44,11 @@ if not os.path.exists(config.BACKUPS_DIRECTORY):
     os.makedirs(config.BACKUPS_DIRECTORY)
 
 
-# Initialize session state
+# Initialise session state
 if "interview_active" not in st.session_state:
     st.session_state.interview_active = True
 
-# Initialize messages list in session state
+# Initialise messages list in session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -98,7 +86,7 @@ with col2:
         quit_message = "You have cancelled the interview."
         st.session_state.messages.append({"role": "assistant", "content": quit_message})
         save_interview_data(
-           # st.session_state.username,
+            st.session_state.username,
             config.TRANSCRIPTS_DIRECTORY,
             config.TIMES_DIRECTORY,
         )
@@ -163,7 +151,7 @@ if not st.session_state.messages:
 
     # Store first backup files to record who started the interview
     save_interview_data(
-        #username=st.session_state.username,
+        username=st.session_state.username,
         transcripts_directory=config.BACKUPS_DIRECTORY,
         times_directory=config.BACKUPS_DIRECTORY,
         file_name_addition_transcript=f"_transcript_started_{st.session_state.start_time_file_names}",
@@ -246,7 +234,7 @@ if st.session_state.interview_active:
                 try:
 
                     save_interview_data(
-                       # username=st.session_state.username,
+                        username=st.session_state.username,
                         transcripts_directory=config.BACKUPS_DIRECTORY,
                         times_directory=config.BACKUPS_DIRECTORY,
                         file_name_addition_transcript=f"_transcript_started_{st.session_state.start_time_file_names}",
@@ -280,41 +268,12 @@ if st.session_state.interview_active:
                     while final_transcript_stored == False:
 
                         save_interview_data(
-                            #username=st.session_state.username,
+                            username=st.session_state.username,
                             transcripts_directory=config.TRANSCRIPTS_DIRECTORY,
                             times_directory=config.TIMES_DIRECTORY,
                         )
 
                         final_transcript_stored = check_if_interview_completed(
-                            config.TRANSCRIPTS_DIRECTORY#, st.session_state.username
+                            config.TRANSCRIPTS_DIRECTORY, st.session_state.username
                         )
                         time.sleep(0.1)
-
-# Save to Box
-# Box API setup
-auth = OAuth2(config.BOX_CLIENT_ID, config.BOX_CLIENT_SECRET, access_token=config.BOX_ACCESS_TOKEN)
-client = Client(auth)
-
-# Save interview transcript to Box
-def save_to_box(file_path, file_name):
-    folder_id = '306134958001'  # Set your Box folder ID where you want to save files
-    folder = client.folder(folder_id).get()
-    with open(file_path, "rb") as file:
-        folder.upload(file, file_name)
-
-# Example of saving the transcript
-file_name = f"interview_transcript_{st.session_state.start_time_file_names}.txt"
-file_path = Path(config.TRANSCRIPTS_DIRECTORY) / file_name
-#file_path = os.path.join(config.TRANSCRIPTS_DIRECTORY, file_name)
-
-
-
-Path(config.TRANSCRIPTS_DIRECTORY).mkdir(parents=True, exist_ok=True)
-Path(config.TIMES_DIRECTORY).mkdir(parents=True, exist_ok=True)
-Path(config.BACKUPS_DIRECTORY).mkdir(parents=True, exist_ok=True)
-
-
-
-
-# Save file to Box
-save_to_box(file_path, file_name)
