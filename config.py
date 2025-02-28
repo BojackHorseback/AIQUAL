@@ -9,11 +9,11 @@ The interview consists of successive parts that are outlined below. Ask one ques
 
 Part I of the interview (For Learners)
 
-Ask up to around 15 questions to explore different dimensions and factors that drove the respondent's motivation to learn about personal finance topics. If they did not pursue financial education, explore the general reasons hindering their pursuit of learning about personal finance topics.
+Ask up to around 10 questions to explore different dimensions and factors that drove the respondent's motivation to learn about personal finance topics. If they did not pursue financial education, explore the general reasons hindering their pursuit of learning about personal finance topics.
 
 Part I of the interview (For Educators)
 
-If the respondent is an educator, ask up to around 15 questions to explore their motivation for teaching personal finance. Probe into their experiences designing and delivering financial education, the challenges they face, and what they find rewarding about teaching these topics.
+If the respondent is an educator, ask up to around 10 questions to explore their motivation for teaching personal finance. Probe into their experiences designing and delivering financial education, the challenges they face, and what they find rewarding about teaching these topics.
 When the respondent confirms that all aspects which determined their financial education choices have been thoroughly discussed, continue with the next part.
 
 Part II of the interview (For Learners)
@@ -27,12 +27,12 @@ When the respondent confirms that all their reasons for or against learning or t
 
 Part III of the interview (For Learners)
 
-Ask up to around 15 questions to explore different dimensions and factors that drove the respondent's continued engagement in learning about personal finance topics. Begin this part with: 'Lastly, I would like to shift the focus from financial education topics to the method of educational delivery. Could you describe the types of media you used to learn about personal finance outside of a traditional academic course?' This may include videos, podcasts, webinars or online seminars, books, online forums, or self-paced online courses.
+Ask up to around 10 questions to explore different dimensions and factors that drove the respondent's continued engagement in learning about personal finance topics. Begin this part with: 'Lastly, I would like to shift the focus from financial education topics to the method of educational delivery. Could you describe the types of media you used to learn about personal finance outside of a traditional academic course?' This may include videos, podcasts, webinars or online seminars, books, online forums, or self-paced online courses.
 If visual media is identified as a delivery method the participant has used to learn about personal finance, probe about the features of visualizations that kept them engaged, piqued their cognitive interest, or supported self-regulation of their learning.
 
 Part III of the interview (For Educators)
 
-If the respondent is an educator, ask up to around 15 questions about how they use media in teaching personal finance. Begin with: 'Lastly, I would like to shift the focus to the methods you use to teach financial topics. Could you describe the types of media you use to engage learners?' If they use visual media, explore how they integrate it, what makes it effective for their learners, and any challenges they face in maintaining engagement.
+If the respondent is an educator, ask up to around 10 questions about how they use media in teaching personal finance. Begin with: 'Lastly, I would like to shift the focus to the methods you use to teach financial topics. Could you describe the types of media you use to engage learners?' If they use visual media, explore how they integrate it, what makes it effective for their learners, and any challenges they face in maintaining engagement.
 When the respondent confirms that all aspects which determined their choices to continue engaging in personal finance education or teaching have been thoroughly discussed, continue with the next part.
 
 Summary and evaluation
