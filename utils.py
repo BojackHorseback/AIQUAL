@@ -1,10 +1,10 @@
 import streamlit as st
 import hmac
-import os
 import time
 import io
-from datetime import datetime
-from google.oauth2.service_account import Credentials  # FIXED import
+import os
+from datetime import datetime #added to potentially use later for transcript info
+from google.oauth2.service_account import Credentials 
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import config
@@ -25,7 +25,6 @@ def authenticate_google_drive():
 
     creds = Credentials.from_service_account_file(key_path, scopes=SCOPES)
     return build("drive", "v3", credentials=creds)
-
 
 def upload_file_to_drive(service, file_path, file_name, mimetype='text/plain'):
     """Upload a file to a specific Google Drive folder."""
@@ -48,7 +47,6 @@ def upload_file_to_drive(service, file_path, file_name, mimetype='text/plain'):
 
     return file['id']
 
-
 def save_interview_data_to_drive(transcript_path, time_path):
     """Save interview transcript & timing data to Google Drive."""
     
@@ -65,7 +63,7 @@ def save_interview_data_to_drive(transcript_path, time_path):
     except Exception as e:
         st.error(f"Failed to upload files: {e}")
 
-
+# pulled over from anthropic version on 3/2
 def save_interview_data(username, transcripts_directory, times_directory, file_name_addition_transcript="", file_name_addition_time=""):
     """Write interview data to disk."""
     transcript_file = os.path.join(transcripts_directory, f"{username}{file_name_addition_transcript}.txt")
@@ -84,28 +82,36 @@ def save_interview_data(username, transcripts_directory, times_directory, file_n
 
     return transcript_file, time_file
 
-
+# Password screen for dashboard (note: only very basic authentication!)
+# Based on https://docs.streamlit.io/knowledge-base/deploy/authentication-without-sso
 def check_password():
     """Returns 'True' if the user has entered a correct password."""
+
     def login_form():
+        """Form with widgets to collect user information"""
         with st.form("Credentials"):
             st.text_input("Username", key="username")
             st.text_input("Password", type="password", key="password")
             st.form_submit_button("Log in", on_click=password_entered)
 
     def password_entered():
+        """Checks whether username and password entered by the user are correct."""
         if st.session_state.username in st.secrets.passwords and hmac.compare_digest(
             st.session_state.password,
             st.secrets.passwords[st.session_state.username],
         ):
             st.session_state.password_correct = True
+
         else:
             st.session_state.password_correct = False
-        del st.session_state.password  # Don't store password in session state
 
+        del st.session_state.password  # don't store password in session state
+
+    # Return True, username if password was already entered correctly before
     if st.session_state.get("password_correct", False):
         return True, st.session_state.username
 
+    # Otherwise show login screen
     login_form()
     if "password_correct" in st.session_state:
         st.error("User or password incorrect")
