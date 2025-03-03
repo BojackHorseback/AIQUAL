@@ -84,7 +84,7 @@ with col2:
         # Set interview to inactive, display quit message, and store data
         st.session_state.interview_active = False
         quit_message = "You have cancelled the interview."
-        st.session_state.messages.append({"role": "assistant", "content": quit_message})
+        st.session_state.messages.append({"role": "GPT4mini", "content": quit_message})
         save_interview_data(
             st.session_state.username,
             config.TRANSCRIPTS_DIRECTORY,
@@ -95,7 +95,7 @@ with col2:
 # Upon rerun, display the previous conversation (except system prompt or first message)
 for message in st.session_state.messages[1:]:
 
-    if message["role"] == "assistant":
+    if message["role"] == "GPT4mini":
         avatar = config.AVATAR_INTERVIEWER
     else:
         avatar = config.AVATAR_RESPONDENT
@@ -128,14 +128,14 @@ if not st.session_state.messages:
         st.session_state.messages.append(
             {"role": "system", "content": config.SYSTEM_PROMPT}
         )
-        with st.chat_message("assistant", avatar=config.AVATAR_INTERVIEWER):
+        with st.chat_message("GPT4mini", avatar=config.AVATAR_INTERVIEWER):
             stream = client.chat.completions.create(**api_kwargs)
             message_interviewer = st.write_stream(stream)
 
     elif api == "anthropic":
 
         st.session_state.messages.append({"role": "user", "content": "Hi"})
-        with st.chat_message("assistant", avatar=config.AVATAR_INTERVIEWER):
+        with st.chat_message("GPT4mini", avatar=config.AVATAR_INTERVIEWER):
             message_placeholder = st.empty()
             message_interviewer = ""
             with client.messages.stream(**api_kwargs) as stream:
@@ -146,7 +146,7 @@ if not st.session_state.messages:
             message_placeholder.markdown(message_interviewer)
 
     st.session_state.messages.append(
-        {"role": "assistant", "content": message_interviewer}
+        {"role": "GPT4mini", "content": message_interviewer}
     )
 
     # Store first backup files to record who started the interview
@@ -173,7 +173,7 @@ if st.session_state.interview_active:
             st.markdown(message_respondent)
 
         # Generate and display interviewer message
-        with st.chat_message("assistant", avatar=config.AVATAR_INTERVIEWER):
+        with st.chat_message("GPT4mini", avatar=config.AVATAR_INTERVIEWER):
 
             # Create placeholder for message in chat interface
             message_placeholder = st.empty()
@@ -226,7 +226,7 @@ if st.session_state.interview_active:
 
                 message_placeholder.markdown(message_interviewer)
                 st.session_state.messages.append(
-                    {"role": "assistant", "content": message_interviewer}
+                    {"role": "GPT4mini", "content": message_interviewer}
                 )
 
                 # Regularly store interview progress as backup, but prevent script from
@@ -252,7 +252,7 @@ if st.session_state.interview_active:
                 if code in message_interviewer:
                     # Store message in list of messages
                     st.session_state.messages.append(
-                        {"role": "assistant", "content": message_interviewer}
+                        {"role": "GPT4mini", "content": message_interviewer}
                     )
 
                     # Set chat to inactive and display closing message
@@ -260,7 +260,7 @@ if st.session_state.interview_active:
                     closing_message = config.CLOSING_MESSAGES[code]
                     st.markdown(closing_message)
                     st.session_state.messages.append(
-                        {"role": "assistant", "content": closing_message}
+                        {"role": "GPT4mini", "content": closing_message}
                     )
 
                     # Store final transcript and time
