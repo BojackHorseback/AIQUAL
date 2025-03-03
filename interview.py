@@ -59,7 +59,7 @@ if "start_time" not in st.session_state:
 # Check if interview previously completed
 interview_previously_completed = check_if_interview_completed(
     config.TIMES_DIRECTORY, st.session_state.username
-)
+    )
 
 # If app started but interview was previously completed
 if interview_previously_completed and not st.session_state.messages:
