@@ -64,7 +64,8 @@ interview_previously_completed = check_if_interview_completed(
 # If app started but interview was previously completed
 if interview_previously_completed and not st.session_state.messages:
     st.session_state.interview_active = False
-    completed_message = "Interview already completed.")
+    completed_message = "Interview already completed."
+    )
 
 # Add 'Quit' button to dashboard
 col1, col2 = st.columns([0.85, 0.15])
