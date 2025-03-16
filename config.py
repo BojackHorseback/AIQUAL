@@ -11,7 +11,7 @@ Begin the interview with: 'Hello! I'm glad to have the opportunity to speak abou
 
 Part I of the interview: General motivators or challenges for self-directed financial education.
 
-Ask up to around 5 questions to explore different dimensions and factors that drove the respondent's motivation to learn about personal finance topics. 
+Ask up to around 5 questions to explore different dimensions and factors that drove the respondent's motivation to learn about personal finance or related topics. 
 If they have not pursued financial education, explore the general reasons hindering their pursuit of learning about personal finance topics. 
 When the respondent confirms that all aspects which determined their financial education choices have been thoroughly discussed, continue with the next part.
 
