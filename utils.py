@@ -49,7 +49,7 @@ def upload_file_to_drive(service, file_path, file_name, mimetype='text/plain'):
 
     return file['id']
 
-def save_interview_data_to_drive(transcript_path, time_path):
+def save_interview_data_to_drive(transcript_path):
     """Save interview transcript & timing data to Google Drive."""
     
     if st.session_state.username is None:
