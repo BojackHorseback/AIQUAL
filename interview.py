@@ -1,3 +1,5 @@
+#interview.py - OpenAI (Saving to Google Drive)
+
 import streamlit as st
 import time
 from utils import (
@@ -8,37 +10,21 @@ from utils import (
 )
 import os
 import config
-
+from datetime import datetime
 # Load API library
-if "gpt" in config.MODEL.lower():
     api = "openai"
     from openai import OpenAI
 
-elif "assistant" in config.MODEL.lower():
-    api = "anthropic"
-    import anthropic
-else:
-    raise ValueError(
-        "Model does not contain 'gpt' or 'claude'; unable to determine API."
-    )
 
 # Set page title and icon
-st.set_page_config(page_title="Interview", page_icon=config.AVATAR_INTERVIEWER)
+st.set_page_config(page_title="Interview - OpenAI", page_icon=config.AVATAR_INTERVIEWER)
 
-# Check if usernames and logins are enabled
-if config.LOGINS:
-    # Check password (displays login screen)
-    pwd_correct, username = check_password()
-    if not pwd_correct:
-        st.stop()
-    else:
-        st.session_state.username = username
-else:
-    st.session_state.username = "testaccount"
+# Get current date and time
+current_datetime = datetime.now().strftime("%Y-%m-%d (%H:%M:%S)")
 
-#Ensure the username is initialized
-if "username" not in st.session_state:
-    st.session_state.username = "default_user"
+# Set the username with date and time
+st.session_state.username = f"OpenAI - {current_datetime}"
+
     
 # Create directories if they do not already exist
 for directory in [config.TRANSCRIPTS_DIRECTORY, config.TIMES_DIRECTORY, config.BACKUPS_DIRECTORY]:
@@ -49,12 +35,7 @@ st.session_state.setdefault("interview_active", True)
 st.session_state.setdefault("messages", [])
 
 
-# Store start time in session state
-if "start_time" not in st.session_state:
-    st.session_state.start_time = time.time()
-    st.session_state.start_time_file_names = time.strftime(
-        "%Y_%m_%d_%H_%M_%S", time.localtime(st.session_state.start_time)
-    )
+
 
 # Check if interview previously completed
 interview_previously_completed = check_if_interview_completed(
