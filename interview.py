@@ -10,6 +10,8 @@ from utils import (
 )
 import os
 import config
+import pytz
+
 from datetime import datetime
 from openai import OpenAI
 api = "openai"
@@ -17,8 +19,11 @@ api = "openai"
 # Set page title and icon
 st.set_page_config(page_title="Interview - OpenAI", page_icon=config.AVATAR_INTERVIEWER)
 
-# Get current date and time
-current_datetime = datetime.now().strftime("%Y-%m-%d (%H:%M:%S)")
+# Define Central Time (CT) timezone
+central_tz = pytz.timezone("America/Chicago")
+
+# Get current date and time in CT
+current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d (%H:%M:%S)")
 
 # Set the username with date and time
 st.session_state.username = f"OpenAI - {current_datetime}"
@@ -135,8 +140,7 @@ if not st.session_state.messages:
         username=st.session_state.username,
         transcripts_directory=config.BACKUPS_DIRECTORY,
         times_directory=config.BACKUPS_DIRECTORY,
-        #file_name_addition_transcript=f"_transcript_started_{st.session_state.start_time_file_names}",
-        #file_name_addition_time=f"_time_started_{st.session_state.start_time_file_names}",
+
     )
 # Main chat if interview is active
 if st.session_state.interview_active:
@@ -182,8 +186,6 @@ if st.session_state.interview_active:
                         username=st.session_state.username,
                         transcripts_directory=config.BACKUPS_DIRECTORY,
                         times_directory=config.BACKUPS_DIRECTORY,
-                        #file_name_addition_transcript=f"_transcript_{st.session_state.start_time_file_names}",
-                        #file_name_addition_time=f"_time_{st.session_state.start_time_file_names}",
                     )
                 except:
                     pass
