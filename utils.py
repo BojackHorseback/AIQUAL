@@ -1,3 +1,5 @@
+#I THINK THIS IS UTILS LOL
+
 import streamlit as st
 import hmac
 import time
@@ -67,20 +69,15 @@ def save_interview_data_to_drive(transcript_path, time_path):
 def save_interview_data(username, transcripts_directory, times_directory, file_name_addition_transcript="", file_name_addition_time=""):
     """Write interview data to disk."""
     transcript_file = os.path.join(transcripts_directory, f"{username}{file_name_addition_transcript}.txt")
-    time_file = os.path.join(times_directory, f"{username}{file_name_addition_time}.txt")
 
     # Store chat transcript
     with open(transcript_file, "w") as t:
         for message in st.session_state.messages:
             t.write(f"{message['role']}: {message['content']}\n")
 
-    # Store interview start time and duration
-    #with open(time_file, "w") as d:
-        #duration = (time.time() - st.session_state.start_time) / 60
-        #d.write(f"Start time (UTC): {time.strftime('%d/%m/%Y %H:%M:%S', time.localtime(st.session_state.start_time))}\n")
-     #   d.write(f"Interview duration (minutes): {duration:.2f}")
 
-    return transcript_file, time_file
+
+    return transcript_file
 
 # Password screen for dashboard (note: only very basic authentication!)
 # Based on https://docs.streamlit.io/knowledge-base/deploy/authentication-without-sso
