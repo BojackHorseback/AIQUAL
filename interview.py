@@ -139,7 +139,7 @@ if not st.session_state.messages:
     save_interview_data(
         username=st.session_state.username,
         transcripts_directory=config.BACKUPS_DIRECTORY,
-        times_directory=config.BACKUPS_DIRECTORY,
+        #times_directory=config.BACKUPS_DIRECTORY,
 
     )
 # Main chat if interview is active
@@ -185,7 +185,7 @@ if st.session_state.interview_active:
                     save_interview_data(
                         username=st.session_state.username,
                         transcripts_directory=config.BACKUPS_DIRECTORY,
-                        times_directory=config.BACKUPS_DIRECTORY,
+                       # times_directory=config.BACKUPS_DIRECTORY,
                     )
                 except:
                     pass
@@ -203,7 +203,7 @@ if st.session_state.interview_active:
                         save_interview_data(
                             username=st.session_state.username,
                             transcripts_directory=config.TRANSCRIPTS_DIRECTORY,
-                            times_directory=config.TIMES_DIRECTORY,
+                           # times_directory=config.TIMES_DIRECTORY,
                         )
                         final_transcript_stored = check_if_interview_completed(config.TRANSCRIPTS_DIRECTORY, st.session_state.username)
                         time.sleep(0.1)
@@ -214,5 +214,5 @@ if st.session_state.interview_active:
 
                     save_interview_data_to_drive(
                         os.path.join(config.TRANSCRIPTS_DIRECTORY, f"{st.session_state.username}.txt"),
-                        os.path.join(config.TIMES_DIRECTORY, f"{st.session_state.username}.txt")
+                        #os.path.join(config.TIMES_DIRECTORY, f"{st.session_state.username}.txt")
                     )
