@@ -11,10 +11,8 @@ from utils import (
 import os
 import config
 from datetime import datetime
-# Load API library
-    api = "openai"
-    from openai import OpenAI
-
+from openai import OpenAI
+api = "openai"
 
 # Set page title and icon
 st.set_page_config(page_title="Interview - OpenAI", page_icon=config.AVATAR_INTERVIEWER)
