@@ -60,7 +60,7 @@ def save_interview_data_to_drive(transcript_path):
 
     try:
         transcript_id = upload_file_to_drive(service, transcript_path, os.path.basename(transcript_path))
-        time_id = upload_file_to_drive(service, time_path, os.path.basename(time_path))
+        #time_id = upload_file_to_drive(service, time_path, os.path.basename(time_path))
         st.success(f"Files uploaded! Transcript ID: {transcript_id}, Time ID: {time_id}")
     except Exception as e:
         st.error(f"Failed to upload files: {e}")
