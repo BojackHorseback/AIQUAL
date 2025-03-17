@@ -66,7 +66,7 @@ def save_interview_data_to_drive(transcript_path, time_path):
         st.error(f"Failed to upload files: {e}")
 
 # pulled over from anthropic version on 3/2
-def save_interview_data(username, transcripts_directory, times_directory, file_name_addition_transcript="", file_name_addition_time=""):
+def save_interview_data(username, transcripts_directory,  file_name_addition_transcript="", file_name_addition_time=""):
     """Write interview data to disk."""
     transcript_file = os.path.join(transcripts_directory, f"{username}{file_name_addition_transcript}.txt")
 
