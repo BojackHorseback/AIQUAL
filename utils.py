@@ -75,10 +75,10 @@ def save_interview_data(username, transcripts_directory, times_directory, file_n
             t.write(f"{message['role']}: {message['content']}\n")
 
     # Store interview start time and duration
-    with open(time_file, "w") as d:
-        duration = (time.time() - st.session_state.start_time) / 60
-        d.write(f"Start time (UTC): {time.strftime('%d/%m/%Y %H:%M:%S', time.localtime(st.session_state.start_time))}\n")
-        d.write(f"Interview duration (minutes): {duration:.2f}")
+    #with open(time_file, "w") as d:
+        #duration = (time.time() - st.session_state.start_time) / 60
+        #d.write(f"Start time (UTC): {time.strftime('%d/%m/%Y %H:%M:%S', time.localtime(st.session_state.start_time))}\n")
+     #   d.write(f"Interview duration (minutes): {duration:.2f}")
 
     return transcript_file, time_file
 
