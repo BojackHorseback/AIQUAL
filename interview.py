@@ -25,8 +25,16 @@ central_tz = pytz.timezone("America/Chicago")
 # Get current date and time in CT
 current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d (%H:%M:%S)")
 
-# Set the username with date and time
-st.session_state.username = f"OpenAI - {current_datetime}"
+# (OLD) Set the username with date and time
+# (OLD) st.session_state.username = f"OpenAI - {current_datetime}"
+
+# Set the username from Qualtrics UID if available
+uid = st.query_params.get("uid")
+if "username" not in st.session_state:
+    if uid:
+        st.session_state.username = uid
+    else:
+        st.session_state.username = f"OpenAI - {current_datetime}"
 
     
 # Create directories if they do not already exist
