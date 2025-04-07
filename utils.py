@@ -71,9 +71,14 @@ def save_interview_data(username, transcripts_directory,  file_name_addition_tra
     transcript_file = os.path.join(transcripts_directory, f"{username}{file_name_addition_transcript}.txt")
 
     # Store chat transcript
+    # (OLD) with open(transcript_file, "w") as t:
+    # (OLD)   for message in st.session_state.messages:
+    # (OLD)       t.write(f"{message['role']}: {message['content']}\n")
+    #Store qualtrics uid
     with open(transcript_file, "w") as t:
-        for message in st.session_state.messages:
-            t.write(f"{message['role']}: {message['content']}\n")
+    t.write(f"User ID: {username}\n\n")
+    for message in st.session_state.messages:
+        t.write(f"{message['role']}: {message['content']}\n")
 
 
 
