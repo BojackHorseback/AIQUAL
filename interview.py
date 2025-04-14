@@ -57,7 +57,9 @@ with col2:
         st.session_state.interview_active = False
         st.session_state.messages.append({"role": "assistant", "content": "You have cancelled the interview."})
         try:
-            save_interview_data(st.session_state.username, config.TRANSCRIPTS_DIRECTORY)
+            transcript_path = save_interview_data(st.session_state.username, config.TRANSCRIPTS_DIRECTORY)
+            if transcript_path:
+                save_interview_data_to_drive(transcript_path)
         except Exception as e:
             st.error(f"Error saving data: {str(e)}")
 
@@ -116,7 +118,7 @@ if not st.session_state.messages:
 
     st.session_state.messages.append({"role": "assistant", "content": message_interviewer})
 
-    # Store initial backup
+    # Store initial backup - no need to save or upload yet as there's no conversation
     try:
         save_interview_data(
             username=st.session_state.username,
@@ -169,6 +171,7 @@ if st.session_state.interview_active:
                 st.session_state.messages.append({"role": "assistant", "content": message_interviewer})
 
                 try:
+                    # Save a backup after each message
                     save_interview_data(
                         username=st.session_state.username,
                         transcripts_directory=config.BACKUPS_DIRECTORY,
@@ -193,7 +196,11 @@ if st.session_state.interview_active:
                                 username=st.session_state.username,
                                 transcripts_directory=config.TRANSCRIPTS_DIRECTORY,
                             )
-                            final_transcript_stored = check_if_interview_completed(config.TRANSCRIPTS_DIRECTORY, st.session_state.username)
+                            # Double check the transcript was actually written
+                            if os.path.exists(transcript_path) and os.path.getsize(transcript_path) > 0:
+                                final_transcript_stored = True
+                            else:
+                                final_transcript_stored = False
                         except Exception as e:
                             st.warning(f"Retry {retries+1}/{max_retries}: Error saving transcript - {str(e)}")
                         
@@ -206,8 +213,9 @@ if st.session_state.interview_active:
                         emergency_file = f"emergency_transcript_{st.session_state.username}.txt"
                         try:
                             with open(emergency_file, "w") as t:
-                                for message in st.session_state.messages:
-                                    t.write(f"{message['role']}: {message['content']}\n")
+                                # Skip the system prompt when saving
+                                for message in st.session_state.messages[1:]:
+                                    t.write(f"{message['role']}: {message['content']}\n\n")
                             transcript_path = emergency_file
                             st.success(f"Created emergency transcript: {emergency_file}")
                         except Exception as e:
@@ -215,6 +223,18 @@ if st.session_state.interview_active:
 
                     if transcript_path:
                         try:
+                            # Debug output to check file content before upload
+                            with open(transcript_path, "r") as f:
+                                file_content = f.read()
+                                if len(file_content.strip()) < 10:  # Check if file is practically empty
+                                    st.warning(f"Warning: Transcript file appears to be nearly empty before upload!")
+                                    
+                                    # Try to write the file again with full content
+                                    with open(transcript_path, "w") as t:
+                                        for message in st.session_state.messages[1:]:
+                                            t.write(f"{message['role']}: {message['content']}\n\n")
+                            
+                            # Now upload to Google Drive
                             save_interview_data_to_drive(transcript_path)
                         except Exception as e:
                             st.error(f"Failed to upload to Google Drive: {str(e)}")
