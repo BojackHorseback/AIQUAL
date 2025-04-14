@@ -76,7 +76,7 @@ def save_interview_data(username, transcripts_directory,  file_name_addition_tra
     # (OLD)       t.write(f"{message['role']}: {message['content']}\n")
     #Store qualtrics uid
     with open(transcript_file, "w") as t:
-        t.write(f"User ID: {username}\n\n")
+    t.write(f"User ID: {username}\n\n")
     for message in st.session_state.messages:
         t.write(f"{message['role']}: {message['content']}\n")
 
