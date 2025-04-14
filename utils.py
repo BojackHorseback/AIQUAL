@@ -10,10 +10,15 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import config
+import pytz
 
 # Initialize session state variables
 if "username" not in st.session_state:
-    st.session_state.username = None
+    # Define Central Time (CT) timezone
+    central_tz = pytz.timezone("America/Chicago")
+    # Get current date and time in CT
+    current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
+    st.session_state.username = f"User_{current_datetime}"
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 FOLDER_ID = "1-y9bGuI0nmK22CPXg804U5nZU3gA--lV"  # Your Google Drive folder ID
@@ -62,29 +67,45 @@ def save_interview_data_to_drive(transcript_path):
 
     try:
         transcript_id = upload_file_to_drive(service, transcript_path, os.path.basename(transcript_path))
-        #time_id = upload_file_to_drive(service, time_path, os.path.basename(time_path))
         st.success(f"Files uploaded! Transcript ID: {transcript_id}")
     except Exception as e:
         st.error(f"Failed to upload files: {e}")
 
 # pulled over from anthropic version on 3/2
-def save_interview_data(username, transcripts_directory,  file_name_addition_transcript="", file_name_addition_time=""):
+def save_interview_data(username, transcripts_directory, times_directory=None, file_name_addition_transcript="", file_name_addition_time=""):
     """Write interview data to disk."""
+    # Ensure username is not None
+    if username is None:
+        central_tz = pytz.timezone("America/Chicago")
+        current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
+        username = f"User_{current_datetime}"
+        st.session_state.username = username
+    
+    # Ensure directories exist
+    os.makedirs(transcripts_directory, exist_ok=True)
+    if times_directory:
+        os.makedirs(times_directory, exist_ok=True)
+    
+    # Create proper file paths
     transcript_file = os.path.join(transcripts_directory, f"{username}{file_name_addition_transcript}.txt")
 
     # Store chat transcript
-    # (OLD) with open(transcript_file, "w") as t:
-    # (OLD)   for message in st.session_state.messages:
-    # (OLD)       t.write(f"{message['role']}: {message['content']}\n")
-    #Store qualtrics uid
-    with open(transcript_file, "w") as t:
-        t.write(f"User ID: {username}\n\n")
-        for message in st.session_state.messages:
-            t.write(f"{message['role']}: {message['content']}\n")
-
-
-
-    return transcript_file
+    try:
+        with open(transcript_file, "w") as t:
+            for message in st.session_state.messages:
+                t.write(f"{message['role']}: {message['content']}\n")
+        return transcript_file
+    except Exception as e:
+        st.error(f"Error saving transcript: {str(e)}")
+        # Create an emergency local file if all else fails
+        emergency_file = f"emergency_transcript_{username}.txt"
+        try:
+            with open(emergency_file, "w") as t:
+                for message in st.session_state.messages:
+                    t.write(f"{message['role']}: {message['content']}\n")
+            return emergency_file
+        except:
+            return None
 
 # Password screen for dashboard (note: only very basic authentication!)
 # Based on https://docs.streamlit.io/knowledge-base/deploy/authentication-without-sso
@@ -124,6 +145,8 @@ def check_password():
 
 def check_if_interview_completed(directory, username):
     """Check if interview transcript/time file exists."""
+    if username is None:
+        return False
     if username != "testaccount":
         return os.path.exists(os.path.join(directory, f"{username}.txt"))
     return False
