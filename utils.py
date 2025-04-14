@@ -53,8 +53,10 @@ def save_interview_data_to_drive(transcript_path):
     """Save interview transcript & timing data to Google Drive."""
     
     if st.session_state.username is None:
-        st.error("Username is not set!")
-        return
+        # Define a fallback username with timestamp if none exists
+        central_tz = pytz.timezone("America/Chicago")
+        current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
+        st.session_state.username = f"User_{current_datetime}"
 
     service = authenticate_google_drive()  # Authenticate Drive API
 
