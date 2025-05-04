@@ -2,6 +2,7 @@
 
 import streamlit as st
 import time
+import re
 from utils import (
     check_password,
     check_if_interview_completed,
@@ -13,7 +14,9 @@ import config
 import pytz
 
 from datetime import datetime
+from urllib.parse import urlparse, parse_qs
 from openai import OpenAI
+
 api = "openai"
 
 # Set page title and icon
@@ -22,13 +25,30 @@ st.set_page_config(page_title="Interview - OpenAI", page_icon=config.AVATAR_INTE
 # Define Central Time (CT) timezone
 central_tz = pytz.timezone("America/Chicago")
 
+# Extract UID from URL query parameters
+uid = None
+try:
+    query_params = st.experimental_get_query_params()
+    for key in ['uid', 'UID', 'user_id', 'userId', 'participant_id']:
+        if key in query_params:
+            uid = query_params[key][0]
+            break
+except:
+    pass
+
 # Get current date and time in CT
 current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
 
-# Set the username with date and time
+# Create username with model and UID (format: ChatGPT_UID_DateTimeStamp)
 if "username" not in st.session_state or st.session_state.username is None:
-    st.session_state.username = f"OpenAI_{current_datetime}"
+    if uid:
+        st.session_state.username = f"ChatGPT_{uid}_{current_datetime}"
+    else:
+        st.session_state.username = f"ChatGPT_NoUID_{current_datetime}"
 
+# Store UID in session state for later use
+if uid:
+    st.session_state.uid = uid
     
 # Create directories if they do not already exist
 for directory in [config.TRANSCRIPTS_DIRECTORY, config.TIMES_DIRECTORY, config.BACKUPS_DIRECTORY]:
@@ -71,12 +91,8 @@ for message in st.session_state.messages[1:]:
             st.markdown(message["content"])
 
 # Load API client
-if api == "openai":
-    client = OpenAI(api_key=st.secrets["API_KEY"])
-    api_kwargs = {"stream": True}
-elif api == "anthropic":
-    client = anthropic.Anthropic(api_key=st.secrets["API_KEY"])
-    api_kwargs = {"system": config.SYSTEM_PROMPT}
+client = OpenAI(api_key=st.secrets["API_KEY"])
+api_kwargs = {"stream": True}
 
 # API kwargs
 api_kwargs.update({
@@ -89,32 +105,14 @@ if config.TEMPERATURE is not None:
 
 # Initialize first system message if history is empty
 if not st.session_state.messages:
-    if api == "openai":
-        st.session_state.messages.append({"role": "system", "content": config.SYSTEM_PROMPT})
-        with st.chat_message("assistant", avatar=config.AVATAR_INTERVIEWER):
-            try:
-                stream = client.chat.completions.create(**api_kwargs)
-                message_interviewer = st.write_stream(stream)
-            except Exception as e:
-                st.error(f"API Error: {str(e)}")
-                message_interviewer = "Sorry, there was an error connecting to the interview service. Please try again later."
-
-    elif api == "anthropic":
-        st.session_state.messages.append({"role": "user", "content": "Hi"})
-        with st.chat_message("assistant", avatar=config.AVATAR_INTERVIEWER):
-            message_placeholder = st.empty()
-            message_interviewer = ""
-            try:
-                with client.messages.stream(**api_kwargs) as stream:
-                    for text_delta in stream.text_stream:
-                        if text_delta:
-                            message_interviewer += text_delta
-                        message_placeholder.markdown(message_interviewer + "▌")
-                message_placeholder.markdown(message_interviewer)
-            except Exception as e:
-                st.error(f"API Error: {str(e)}")
-                message_interviewer = "Sorry, there was an error connecting to the interview service. Please try again later."
-                message_placeholder.markdown(message_interviewer)
+    st.session_state.messages.append({"role": "system", "content": config.SYSTEM_PROMPT})
+    with st.chat_message("assistant", avatar=config.AVATAR_INTERVIEWER):
+        try:
+            stream = client.chat.completions.create(**api_kwargs)
+            message_interviewer = st.write_stream(stream)
+        except Exception as e:
+            st.error(f"API Error: {str(e)}")
+            message_interviewer = "Sorry, there was an error connecting to the interview service. Please try again later."
 
     st.session_state.messages.append({"role": "assistant", "content": message_interviewer})
 
@@ -140,28 +138,16 @@ if st.session_state.interview_active:
             message_interviewer = ""
 
             try:
-                if api == "openai":
-                    stream = client.chat.completions.create(**api_kwargs)
-                    for message in stream:
-                        text_delta = message.choices[0].delta.content
-                        if text_delta:
-                            message_interviewer += text_delta
-                        if len(message_interviewer) > 5:
-                            message_placeholder.markdown(message_interviewer + "▌")
-                        if any(code in message_interviewer for code in config.CLOSING_MESSAGES.keys()):
-                            message_placeholder.empty()
-                            break
-
-                elif api == "anthropic":
-                    with client.messages.stream(**api_kwargs) as stream:
-                        for text_delta in stream.text_stream:
-                            if text_delta:
-                                message_interviewer += text_delta
-                            if len(message_interviewer) > 5:
-                                message_placeholder.markdown(message_interviewer + "▌")
-                            if any(code in message_interviewer for code in config.CLOSING_MESSAGES.keys()):
-                                message_placeholder.empty()
-                                break
+                stream = client.chat.completions.create(**api_kwargs)
+                for message in stream:
+                    text_delta = message.choices[0].delta.content
+                    if text_delta:
+                        message_interviewer += text_delta
+                    if len(message_interviewer) > 5:
+                        message_placeholder.markdown(message_interviewer + "▌")
+                    if any(code in message_interviewer for code in config.CLOSING_MESSAGES.keys()):
+                        message_placeholder.empty()
+                        break
             except Exception as e:
                 st.error(f"API Error: {str(e)}")
                 message_interviewer = "Sorry, there was an error. Your response was saved, but we couldn't generate a reply."
@@ -197,7 +183,7 @@ if st.session_state.interview_active:
                                 transcripts_directory=config.TRANSCRIPTS_DIRECTORY,
                             )
                             # Double check the transcript was actually written
-                            if os.path.exists(transcript_path) and os.path.getsize(transcript_path) > 0:
+                            if transcript_path and os.path.exists(transcript_path) and os.path.getsize(transcript_path) > 0:
                                 final_transcript_stored = True
                             else:
                                 final_transcript_stored = False
@@ -223,18 +209,7 @@ if st.session_state.interview_active:
 
                     if transcript_path:
                         try:
-                            # Debug output to check file content before upload
-                            with open(transcript_path, "r") as f:
-                                file_content = f.read()
-                                if len(file_content.strip()) < 10:  # Check if file is practically empty
-                                    st.warning(f"Warning: Transcript file appears to be nearly empty before upload!")
-                                    
-                                    # Try to write the file again with full content
-                                    with open(transcript_path, "w") as t:
-                                        for message in st.session_state.messages[1:]:
-                                            t.write(f"{message['role']}: {message['content']}\n\n")
-                            
-                            # Now upload to Google Drive
+                            # Save to Google Drive without displaying any ID information
                             save_interview_data_to_drive(transcript_path)
                         except Exception as e:
                             st.error(f"Failed to upload to Google Drive: {str(e)}")
