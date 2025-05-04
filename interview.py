@@ -1,4 +1,4 @@
-#interview.py - OpenAI (Saving to Google Drive)
+#interview.py - OpenAI (Saving to Google Drive) - Updated
 
 import streamlit as st
 import time
@@ -25,19 +25,15 @@ central_tz = pytz.timezone("America/Chicago")
 # Get current date and time in CT
 current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
 
-# Extract ResponseID from URL parameters (after UID in the Qualtrics URL)
+# Extract UID from URL parameters
 query_params = st.query_params
-response_id = query_params.get("ResponseID", [None])[0] if isinstance(query_params.get("ResponseID"), list) else query_params.get("ResponseID")
-if not response_id:
-    response_id = query_params.get("responceId", [None])[0] if isinstance(query_params.get("responceId"), list) else query_params.get("responceId")
-if not response_id:
-    response_id = query_params.get("UID", [None])[0] if isinstance(query_params.get("UID"), list) else query_params.get("UID")
+response_id = query_params.get("UID", None)
 
-# Store ResponseID in session state for utils to access
+# Store UID in session state for utils to access
 if "response_id" not in st.session_state:
     st.session_state.response_id = response_id
 
-# Set the username with API type, Response ID, and date/time
+# Set the username with API type, UID, and date/time
 if "username" not in st.session_state or st.session_state.username is None:
     if response_id:
         st.session_state.username = f"OpenAI_{response_id}_{current_datetime}"
