@@ -1,4 +1,4 @@
-# Utils.py update streamlit
+# Utils.py update 
 
 import streamlit as st
 import hmac
@@ -73,7 +73,7 @@ def save_interview_data_to_drive(transcript_path):
 
 # pulled over from anthropic version on 3/2
 def save_interview_data(username, transcripts_directory, times_directory=None, file_name_addition_transcript="", file_name_addition_time=""):
-    """Write interview data to disk."""
+    """Write interview data to disk with complete metadata."""
     # Ensure username is not None
     if username is None:
         central_tz = pytz.timezone("America/Chicago")
@@ -89,7 +89,7 @@ def save_interview_data(username, transcripts_directory, times_directory=None, f
     # Create proper file paths
     transcript_file = os.path.join(transcripts_directory, f"{username}{file_name_addition_transcript}.txt")
 
-    # Store chat transcript with metadata
+    # Store chat transcript with complete metadata
     try:
         central_tz = pytz.timezone("America/Chicago")
         current_time = datetime.now(central_tz).strftime("%Y-%m-%d %H:%M:%S %Z")
@@ -106,7 +106,7 @@ def save_interview_data(username, transcripts_directory, times_directory=None, f
             t.write(f"Timezone: {central_tz.zone}\n")
             t.write("==========================\n\n")
             
-            # Write conversation
+            # Write conversation - preserve original single newline format
             for i, message in enumerate(st.session_state.messages):
                 if i == 0:  # Skip system prompt
                     continue
