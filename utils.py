@@ -101,7 +101,7 @@ def save_interview_data_to_drive(transcript_path):
         st.error(f"Failed to upload files: {e}")
         return None
 
-def save_interview_data(username, transcripts_directory, times_directory=None, file_name_addition_transcript="", file_name_addition_time=""):
+def save_interview_data(username, transcripts_directory, model_name="", times_directory=None, file_name_addition_transcript="", file_name_addition_time=""):
     """Write interview data to disk."""
     # Ensure username is not None
     if username is None:
@@ -115,9 +115,15 @@ def save_interview_data(username, transcripts_directory, times_directory=None, f
     if times_directory:
         os.makedirs(times_directory, exist_ok=True)
     
-    # Create proper file paths
-    transcript_file = os.path.join(transcripts_directory, f"{username}{file_name_addition_transcript}.txt")
-
+    # Create proper file paths in Model-Date-UserID format
+    # Extract date from username (assuming username format is "OpenAI_2025-05-03_12-30-45")
+    date_part = username.split('_')[1] if '_' in username else ""
+    file_name = f"{model_name}-{date_part}-{username}" if model_name else username
+    
+    transcript_file = os.path.join(transcripts_directory, f"{file_name}{file_name_addition_transcript}.txt")
+    
+    # Rest of the function remains the same...
+    
     # Store chat transcript
     try:
         with open(transcript_file, "w") as t:
