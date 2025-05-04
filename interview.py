@@ -1,8 +1,7 @@
-#interview.py - OpenAI (Saving to Google Drive)
+#interview.py - OpenAI (Saving to Google Drive) - Updated Version
 
 import streamlit as st
 import time
-import re
 from utils import (
     check_password,
     check_if_interview_completed,
@@ -12,12 +11,8 @@ from utils import (
 import os
 import config
 import pytz
-
 from datetime import datetime
-from urllib.parse import urlparse, parse_qs
 from openai import OpenAI
-
-api = "openai"
 
 # Set page title and icon
 st.set_page_config(page_title="Interview - OpenAI", page_icon=config.AVATAR_INTERVIEWER)
@@ -25,50 +20,30 @@ st.set_page_config(page_title="Interview - OpenAI", page_icon=config.AVATAR_INTE
 # Define Central Time (CT) timezone
 central_tz = pytz.timezone("America/Chicago")
 
-# Extract UID from URL query parameters
-uid = None
-try:
-    query_params = st.experimental_get_query_params()
-    for key in ['uid', 'UID', 'user_id', 'userId', 'participant_id']:
-        if key in query_params:
-            uid = query_params[key][0]
-            break
-except:
-    pass
-
 # Get current date and time in CT
 current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
 
-# Create username with model and UID (format: ChatGPT_UID_DateTimeStamp)
+# Create unique username with model identifier
 if "username" not in st.session_state or st.session_state.username is None:
-    if uid:
-        st.session_state.username = f"ChatGPT_{uid}_{current_datetime}"
-    else:
-        st.session_state.username = f"ChatGPT_NoUID_{current_datetime}"
+    st.session_state.username = f"User-{current_datetime}"
 
-# Store UID in session state for later use
-if uid:
-    st.session_state.uid = uid
-    
 # Create directories if they do not already exist
 for directory in [config.TRANSCRIPTS_DIRECTORY, config.TIMES_DIRECTORY, config.BACKUPS_DIRECTORY]:
     os.makedirs(directory, exist_ok=True)
 
-# Initialise session state
+# Initialize session state
 st.session_state.setdefault("interview_active", True)
 st.session_state.setdefault("messages", [])
 
-
 # Check if interview previously completed
 interview_previously_completed = check_if_interview_completed(
-    config.TRANSCRIPTS_DIRECTORY, st.session_state.username
+    config.TRANSCRIPTS_DIRECTORY, st.session_state.username, model=config.MODEL
     )
 
 # If app started but interview was previously completed
 if interview_previously_completed and not st.session_state.messages:
     st.session_state.interview_active = False
-    completed_message = "Interview already completed."
-    
+    st.write("Interview already completed.")
 
 # Add 'Quit' button to dashboard
 col1, col2 = st.columns([0.85, 0.15])
@@ -77,7 +52,12 @@ with col2:
         st.session_state.interview_active = False
         st.session_state.messages.append({"role": "assistant", "content": "You have cancelled the interview."})
         try:
-            transcript_path = save_interview_data(st.session_state.username, config.TRANSCRIPTS_DIRECTORY)
+            transcript_path = save_interview_data(
+                username=st.session_state.username, 
+                transcripts_directory=config.TRANSCRIPTS_DIRECTORY,
+                model=config.MODEL,
+                file_name_addition_transcript="_cancelled"
+            )
             if transcript_path:
                 save_interview_data_to_drive(transcript_path)
         except Exception as e:
@@ -92,14 +72,14 @@ for message in st.session_state.messages[1:]:
 
 # Load API client
 client = OpenAI(api_key=st.secrets["API_KEY"])
-api_kwargs = {"stream": True}
 
 # API kwargs
-api_kwargs.update({
+api_kwargs = {
+    "stream": True,
     "messages": st.session_state.messages,
     "model": config.MODEL,
     "max_tokens": config.MAX_OUTPUT_TOKENS,
-})
+}
 if config.TEMPERATURE is not None:
     api_kwargs["temperature"] = config.TEMPERATURE
 
@@ -116,14 +96,16 @@ if not st.session_state.messages:
 
     st.session_state.messages.append({"role": "assistant", "content": message_interviewer})
 
-    # Store initial backup - no need to save or upload yet as there's no conversation
+    # Store initial backup
     try:
         save_interview_data(
             username=st.session_state.username,
             transcripts_directory=config.BACKUPS_DIRECTORY,
+            model=config.MODEL,
+            file_name_addition_transcript="_initial_backup"
         )
     except Exception as e:
-        st.error(f"Error saving backup: {str(e)}")
+        st.error(f"Error saving initial backup: {str(e)}")
         
 # Main chat if interview is active
 if st.session_state.interview_active:
@@ -156,21 +138,25 @@ if st.session_state.interview_active:
                 message_placeholder.markdown(message_interviewer)
                 st.session_state.messages.append({"role": "assistant", "content": message_interviewer})
 
+                # Save backup after each message
                 try:
-                    # Save a backup after each message
                     save_interview_data(
                         username=st.session_state.username,
                         transcripts_directory=config.BACKUPS_DIRECTORY,
+                        model=config.MODEL,
+                        file_name_addition_transcript="_backup"
                     )
                 except Exception as e:
                     st.warning(f"Failed to save backup: {str(e)}")
 
+            # Check for interview completion codes
             for code in config.CLOSING_MESSAGES.keys():
                 if code in message_interviewer:
                     st.session_state.messages.append({"role": "assistant", "content": message_interviewer})
                     st.session_state.interview_active = False
                     st.markdown(config.CLOSING_MESSAGES[code])
 
+                    # Save final transcript with proper naming
                     final_transcript_stored = False
                     retries = 0
                     max_retries = 10
@@ -181,9 +167,11 @@ if st.session_state.interview_active:
                             transcript_path = save_interview_data(
                                 username=st.session_state.username,
                                 transcripts_directory=config.TRANSCRIPTS_DIRECTORY,
+                                model=config.MODEL,
+                                file_name_addition_transcript="_final"
                             )
-                            # Double check the transcript was actually written
-                            if transcript_path and os.path.exists(transcript_path) and os.path.getsize(transcript_path) > 0:
+                            # Verify the file was written successfully
+                            if os.path.exists(transcript_path) and os.path.getsize(transcript_path) > 0:
                                 final_transcript_stored = True
                             else:
                                 final_transcript_stored = False
@@ -193,10 +181,10 @@ if st.session_state.interview_active:
                         time.sleep(0.1)
                         retries += 1
 
-                    if retries == max_retries and not final_transcript_stored:
+                    if not final_transcript_stored:
                         st.error("Error: Interview transcript could not be saved properly after multiple attempts!")
                         # Create emergency local transcript
-                        emergency_file = f"emergency_transcript_{st.session_state.username}.txt"
+                        emergency_file = f"emergency_transcript_{config.MODEL}-{current_datetime}-{st.session_state.username}.txt"
                         try:
                             with open(emergency_file, "w") as t:
                                 # Skip the system prompt when saving
@@ -207,9 +195,20 @@ if st.session_state.interview_active:
                         except Exception as e:
                             st.error(f"Failed to create emergency transcript: {str(e)}")
 
+                    # Upload to Google Drive
                     if transcript_path:
                         try:
-                            # Save to Google Drive without displaying any ID information
+                            # Verify file content before upload
+                            with open(transcript_path, "r") as f:
+                                file_content = f.read()
+                                if len(file_content.strip()) < 10:
+                                    st.warning(f"Warning: Transcript file appears to be nearly empty before upload!")
+                                    
+                                    # Re-write the file with full content
+                                    with open(transcript_path, "w") as t:
+                                        for message in st.session_state.messages[1:]:
+                                            t.write(f"{message['role']}: {message['content']}\n\n")
+                            
                             save_interview_data_to_drive(transcript_path)
                         except Exception as e:
                             st.error(f"Failed to upload to Google Drive: {str(e)}")
