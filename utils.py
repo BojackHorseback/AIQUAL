@@ -1,11 +1,12 @@
-#I THINK THIS IS UTILS LOL
+#utils.py - OpenAI Version
 
 import streamlit as st
 import hmac
 import time
 import io
 import os
-from datetime import datetime #added to potentially use later for transcript info
+import re
+from datetime import datetime
 from google.oauth2.service_account import Credentials 
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
@@ -36,8 +37,6 @@ def authenticate_google_drive():
 def upload_file_to_drive(service, file_path, file_name, mimetype='text/plain'):
     """Upload a file to a specific Google Drive folder."""
     
-    FOLDER_ID = "1-y9bGuI0nmK22CPXg804U5nZU3gA--lV"  # Your folder ID
-
     file_metadata = {
         'name': file_name,
         'parents': [FOLDER_ID]  # Upload into the specified folder
@@ -63,11 +62,23 @@ def save_interview_data_to_drive(transcript_path):
         current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
         st.session_state.username = f"User_{current_datetime}"
 
-    # Before uploading the file, make sure it contains the full conversation
-    # This creates a fresh transcript with all messages to ensure completeness
+    # Before uploading, rewrite the file to ensure model info is included
     if os.path.exists(transcript_path):
         try:
             with open(transcript_path, "w") as t:
+                # Extract UID from username or session state
+                uid = st.session_state.get('uid', None)
+                if not uid:
+                    match = re.search(r'ChatGPT_(.*?)_\d{4}-\d{2}-\d{2}', st.session_state.username)
+                    uid = match.group(1) if match else "Unknown"
+                
+                # Add comprehensive metadata header
+                t.write(f"Username: {st.session_state.username}\n")
+                t.write(f"AI Model: {config.MODEL}\n")
+                t.write(f"User ID from Qualtrics: {uid}\n")
+                t.write(f"Upload Time: {datetime.now(pytz.timezone('America/Chicago')).strftime('%Y-%m-%d %H:%M:%S %Z')}\n")
+                t.write(f"{'='*50}\n\n")
+                
                 # Skip the system prompt (first message) when saving the transcript
                 for message in st.session_state.messages[1:]:
                     t.write(f"{message['role']}: {message['content']}\n\n")
@@ -78,11 +89,18 @@ def save_interview_data_to_drive(transcript_path):
 
     try:
         transcript_id = upload_file_to_drive(service, transcript_path, os.path.basename(transcript_path))
-        st.success(f"Files uploaded! Transcript ID: {transcript_id}")
+        
+        # Just show success message without displaying any IDs
+        st.success(f"Files uploaded successfully!")
+        
+        # Store transcript ID in session state for potential later use (but don't display)
+        st.session_state.transcript_id = transcript_id
+        
+        return transcript_id
     except Exception as e:
         st.error(f"Failed to upload files: {e}")
+        return None
 
-# pulled over from anthropic version on 3/2
 def save_interview_data(username, transcripts_directory, times_directory=None, file_name_addition_transcript="", file_name_addition_time=""):
     """Write interview data to disk."""
     # Ensure username is not None
@@ -103,6 +121,19 @@ def save_interview_data(username, transcripts_directory, times_directory=None, f
     # Store chat transcript
     try:
         with open(transcript_file, "w") as t:
+            # Extract UID from username or session state
+            uid = st.session_state.get('uid', None)
+            if not uid:
+                match = re.search(r'ChatGPT_(.*?)_\d{4}-\d{2}-\d{2}', username)
+                uid = match.group(1) if match else "Unknown"
+            
+            # Add comprehensive metadata header
+            t.write(f"Username: {username}\n")
+            t.write(f"AI Model: {config.MODEL}\n")
+            t.write(f"User ID from Qualtrics: {uid}\n")
+            t.write(f"Save Time: {datetime.now(pytz.timezone('America/Chicago')).strftime('%Y-%m-%d %H:%M:%S %Z')}\n")
+            t.write(f"{'='*50}\n\n")
+            
             # Skip the system prompt (first message) when saving the transcript
             for message in st.session_state.messages[1:]:
                 t.write(f"{message['role']}: {message['content']}\n\n")
