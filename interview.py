@@ -33,6 +33,9 @@ except Exception as e:
 
 st.session_state.qualtrics_response_id = qualtrics_response_id
 
+# Store the actual model name from config
+st.session_state.actual_model = config.MODEL
+
 # Set page title and icon
 st.set_page_config(page_title="Interview - OpenAI", page_icon=config.AVATAR_INTERVIEWER)
 
@@ -195,8 +198,6 @@ if st.session_state.interview_active:
 
             for code in config.CLOSING_MESSAGES.keys():
                 if code in message_interviewer:
-                    # DON'T add the code to session state messages - it's just internal signaling
-                    # Add the actual closing message to show to user after the code is detected
                     display_message = config.CLOSING_MESSAGES[code]
                     st.session_state.messages.append({"role": "assistant", "content": display_message})
                     st.session_state.interview_active = False
@@ -213,7 +214,6 @@ if st.session_state.interview_active:
                                 username=st.session_state.username,
                                 transcripts_directory=config.TRANSCRIPTS_DIRECTORY,
                             )
-                            # Double check the transcript was actually written
                             if os.path.exists(transcript_path) and os.path.getsize(transcript_path) > 0:
                                 final_transcript_stored = True
                             else:
