@@ -1,11 +1,10 @@
-#utils.py - OpenAI Version
+# utils.py - Updated Version
 
 import streamlit as st
 import hmac
 import time
 import io
 import os
-import re
 from datetime import datetime
 from google.oauth2.service_account import Credentials 
 from googleapiclient.discovery import build
@@ -19,7 +18,7 @@ if "username" not in st.session_state:
     central_tz = pytz.timezone("America/Chicago")
     # Get current date and time in CT
     current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
-    st.session_state.username = f"User_{current_datetime}"
+    st.session_state.username = f"User-{current_datetime}"
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 FOLDER_ID = "1-y9bGuI0nmK22CPXg804U5nZU3gA--lV"  # Your Google Drive folder ID
@@ -54,31 +53,18 @@ def upload_file_to_drive(service, file_path, file_name, mimetype='text/plain'):
     return file['id']
 
 def save_interview_data_to_drive(transcript_path):
-    """Save interview transcript & timing data to Google Drive."""
+    """Save interview transcript to Google Drive."""
     
     if st.session_state.username is None:
         # Define a fallback username with timestamp if none exists
         central_tz = pytz.timezone("America/Chicago")
         current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
-        st.session_state.username = f"User_{current_datetime}"
+        st.session_state.username = f"User-{current_datetime}"
 
-    # Before uploading, rewrite the file to ensure model info is included
+    # Ensure the file contains the full conversation before upload
     if os.path.exists(transcript_path):
         try:
             with open(transcript_path, "w") as t:
-                # Extract UID from username or session state
-                uid = st.session_state.get('uid', None)
-                if not uid:
-                    match = re.search(r'ChatGPT_(.*?)_\d{4}-\d{2}-\d{2}', st.session_state.username)
-                    uid = match.group(1) if match else "Unknown"
-                
-                # Add comprehensive metadata header
-                t.write(f"Username: {st.session_state.username}\n")
-                t.write(f"AI Model: {config.MODEL}\n")
-                t.write(f"User ID from Qualtrics: {uid}\n")
-                t.write(f"Upload Time: {datetime.now(pytz.timezone('America/Chicago')).strftime('%Y-%m-%d %H:%M:%S %Z')}\n")
-                t.write(f"{'='*50}\n\n")
-                
                 # Skip the system prompt (first message) when saving the transcript
                 for message in st.session_state.messages[1:]:
                     t.write(f"{message['role']}: {message['content']}\n\n")
@@ -89,25 +75,17 @@ def save_interview_data_to_drive(transcript_path):
 
     try:
         transcript_id = upload_file_to_drive(service, transcript_path, os.path.basename(transcript_path))
-        
-        # Just show success message without displaying any IDs
-        st.success(f"Files uploaded successfully!")
-        
-        # Store transcript ID in session state for potential later use (but don't display)
-        st.session_state.transcript_id = transcript_id
-        
-        return transcript_id
+        st.success(f"File uploaded successfully! Transcript ID: {transcript_id}")
     except Exception as e:
-        st.error(f"Failed to upload files: {e}")
-        return None
+        st.error(f"Failed to upload file: {e}")
 
-def save_interview_data(username, transcripts_directory, model_name="", times_directory=None, file_name_addition_transcript="", file_name_addition_time=""):
-    """Write interview data to disk."""
+def save_interview_data(username, transcripts_directory, model="", times_directory=None, file_name_addition_transcript="", file_name_addition_time=""):
+    """Write interview data to disk with proper Model-Date-UserID naming."""
     # Ensure username is not None
     if username is None:
         central_tz = pytz.timezone("America/Chicago")
         current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
-        username = f"User_{current_datetime}"
+        username = f"User-{current_datetime}"
         st.session_state.username = username
     
     # Ensure directories exist
@@ -115,31 +93,21 @@ def save_interview_data(username, transcripts_directory, model_name="", times_di
     if times_directory:
         os.makedirs(times_directory, exist_ok=True)
     
-    # Create proper file paths in Model-Date-UserID format
-    # Extract date from username (assuming username format is "OpenAI_2025-05-03_12-30-45")
-    date_part = username.split('_')[1] if '_' in username else ""
-    file_name = f"{model_name}-{date_part}-{username}" if model_name else username
+    # Create proper file paths with Model-Date-UserID format
+    central_tz = pytz.timezone("America/Chicago")
+    current_date = datetime.now(central_tz).strftime("%Y-%m-%d")
     
+    # Extract date from username (assuming format is "User-YYYY-MM-DD_HH-MM-SS")
+    date_part = username.split('-')[1:4]  # Get year, month, day
+    date_str = '-'.join(date_part) if len(date_part) >= 3 else current_date
+    
+    # Format: Model-Date-UserID
+    file_name = f"{model}-{date_str}-{username}"
     transcript_file = os.path.join(transcripts_directory, f"{file_name}{file_name_addition_transcript}.txt")
-    
-    # Rest of the function remains the same...
-    
+
     # Store chat transcript
     try:
         with open(transcript_file, "w") as t:
-            # Extract UID from username or session state
-            uid = st.session_state.get('uid', None)
-            if not uid:
-                match = re.search(r'ChatGPT_(.*?)_\d{4}-\d{2}-\d{2}', username)
-                uid = match.group(1) if match else "Unknown"
-            
-            # Add comprehensive metadata header
-            t.write(f"Username: {username}\n")
-            t.write(f"AI Model: {config.MODEL}\n")
-            t.write(f"User ID from Qualtrics: {uid}\n")
-            t.write(f"Save Time: {datetime.now(pytz.timezone('America/Chicago')).strftime('%Y-%m-%d %H:%M:%S %Z')}\n")
-            t.write(f"{'='*50}\n\n")
-            
             # Skip the system prompt (first message) when saving the transcript
             for message in st.session_state.messages[1:]:
                 t.write(f"{message['role']}: {message['content']}\n\n")
@@ -147,7 +115,7 @@ def save_interview_data(username, transcripts_directory, model_name="", times_di
     except Exception as e:
         st.error(f"Error saving transcript: {str(e)}")
         # Create an emergency local file if all else fails
-        emergency_file = f"emergency_transcript_{username}.txt"
+        emergency_file = f"emergency_transcript_{model}-{current_date}-{username}.txt"
         try:
             with open(emergency_file, "w") as t:
                 # Skip the system prompt (first message) when saving the transcript
@@ -193,10 +161,22 @@ def check_password():
     return False, st.session_state.username
 
 
-def check_if_interview_completed(directory, username):
-    """Check if interview transcript/time file exists."""
+def check_if_interview_completed(directory, username, model=""):
+    """Check if interview transcript/time file exists with Model-Date-UserID format."""
     if username is None:
         return False
     if username != "testaccount":
-        return os.path.exists(os.path.join(directory, f"{username}.txt"))
+        # Look for files matching the pattern
+        central_tz = pytz.timezone("America/Chicago")
+        current_date = datetime.now(central_tz).strftime("%Y-%m-%d")
+        
+        # Extract date from username
+        date_part = username.split('-')[1:4]
+        date_str = '-'.join(date_part) if len(date_part) >= 3 else current_date
+        
+        # Check for file with Model-Date-UserID format
+        transcript_pattern = f"{model}-{date_str}-{username}"
+        transcript_file = os.path.join(directory, f"{transcript_pattern}_final.txt")
+        
+        return os.path.exists(transcript_file)
     return False
