@@ -63,17 +63,6 @@ def save_interview_data_to_drive(transcript_path):
         current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
         st.session_state.username = f"User_{current_datetime}"
 
-    # Before uploading the file, make sure it contains the full conversation
-    # This creates a fresh transcript with all messages to ensure completeness
-    if os.path.exists(transcript_path):
-        try:
-            with open(transcript_path, "w") as t:
-                # Skip the system prompt (first message) when saving the transcript
-                for message in st.session_state.messages[1:]:
-                    t.write(f"{message['role']}: {message['content']}\n\n")
-        except Exception as e:
-            st.error(f"Error updating transcript before upload: {str(e)}")
-
     service = authenticate_google_drive()  # Authenticate Drive API
 
     try:
@@ -100,12 +89,28 @@ def save_interview_data(username, transcripts_directory, times_directory=None, f
     # Create proper file paths
     transcript_file = os.path.join(transcripts_directory, f"{username}{file_name_addition_transcript}.txt")
 
-    # Store chat transcript
+    # Store chat transcript with metadata
     try:
+        central_tz = pytz.timezone("America/Chicago")
+        current_time = datetime.now(central_tz).strftime("%Y-%m-%d %H:%M:%S %Z")
+        
         with open(transcript_file, "w") as t:
-            # Skip the system prompt (first message) when saving the transcript
-            for message in st.session_state.messages[1:]:
-                t.write(f"{message['role']}: {message['content']}\n\n")
+            # Write metadata header
+            t.write("=== INTERVIEW METADATA ===\n")
+            t.write(f"Qualtrics Response ID: {st.session_state.get('qualtrics_response_id', 'N/A')}\n")
+            t.write(f"Session ID: {username}\n")
+            t.write(f"Model Type: {'OpenAI' if 'OpenAI' in username else 'Anthropic'}\n")
+            t.write(f"Interview Start Time: {st.session_state.get('interview_start_time', 'N/A')}\n")
+            t.write(f"Interview End Time: {current_time}\n")
+            t.write(f"Message Count: {len(st.session_state.messages) - 1}\n")  # Exclude system prompt
+            t.write(f"Timezone: {central_tz.zone}\n")
+            t.write("==========================\n\n")
+            
+            # Write conversation
+            for i, message in enumerate(st.session_state.messages):
+                if i == 0:  # Skip system prompt
+                    continue
+                t.write(f"{message['role']}: {message['content']}\n")
         return transcript_file
     except Exception as e:
         st.error(f"Error saving transcript: {str(e)}")
@@ -113,9 +118,8 @@ def save_interview_data(username, transcripts_directory, times_directory=None, f
         emergency_file = f"emergency_transcript_{username}.txt"
         try:
             with open(emergency_file, "w") as t:
-                # Skip the system prompt (first message) when saving the transcript
-                for message in st.session_state.messages[1:]:
-                    t.write(f"{message['role']}: {message['content']}\n\n")
+                for message in st.session_state.messages:
+                    t.write(f"{message['role']}: {message['content']}\n")
             return emergency_file
         except:
             return None
