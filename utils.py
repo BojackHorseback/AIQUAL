@@ -1,11 +1,11 @@
-#UTILS.PY - updated version 
+#UTILS.PY
 
 import streamlit as st
 import hmac
 import time
 import io
 import os
-from datetime import datetime #added to potentially use later for transcript info
+from datetime import datetime
 from google.oauth2.service_account import Credentials 
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
@@ -75,7 +75,7 @@ def save_interview_data(username, transcripts_directory, times_directory=None, f
     if username is None:
         central_tz = pytz.timezone("America/Chicago")
         current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
-        username = f"User_{current_datetime}"
+        username = f"User_NoUID_{current_datetime}"
         st.session_state.username = username
     
     # Ensure directories exist
@@ -83,7 +83,12 @@ def save_interview_data(username, transcripts_directory, times_directory=None, f
     if times_directory:
         os.makedirs(times_directory, exist_ok=True)
     
-    # Create proper file paths
+    # Extract metadata from username
+    username_parts = username.split('_')
+    model_type = username_parts[0] if len(username_parts) > 0 else 'Unknown'
+    uid_part = username_parts[1] if len(username_parts) > 1 else 'NoUID'
+    
+    # Create filename
     transcript_file = os.path.join(transcripts_directory, f"{username}{file_name_addition_transcript}.txt")
 
     # Store chat transcript with metadata
@@ -93,9 +98,10 @@ def save_interview_data(username, transcripts_directory, times_directory=None, f
             central_tz = pytz.timezone("America/Chicago")
             t.write("=== INTERVIEW METADATA ===\n")
             t.write(f"Username: {username}\n")
+            t.write(f"Qualtrics UID: {uid_part}\n")
             t.write(f"Timestamp: {datetime.now(central_tz).isoformat()}\n")
             t.write(f"Model Used: {config.MODEL}\n")
-            t.write(f"API Type: openai\n")  # You can make this dynamic if needed
+            t.write(f"API Type: {model_type.lower()}\n")
             t.write(f"Message Count: {len(st.session_state.messages)}\n")
             t.write("===========================\n\n")
             
@@ -110,7 +116,6 @@ def save_interview_data(username, transcripts_directory, times_directory=None, f
         emergency_file = f"emergency_transcript_{username}.txt"
         try:
             with open(emergency_file, "w") as t:
-                # Skip the system prompt (first message) when saving the transcript
                 for message in st.session_state.messages[1:]:
                     t.write(f"{message['role']}: {message['content']}\n\n")
             return emergency_file
@@ -158,5 +163,7 @@ def check_if_interview_completed(directory, username):
     if username is None:
         return False
     if username != "testaccount":
-        return os.path.exists(os.path.join(directory, f"{username}.txt"))
+        # Check for the exact filename with the username
+        file_path = os.path.join(directory, f"{username}.txt")
+        return os.path.exists(file_path)
     return False
