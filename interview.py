@@ -14,8 +14,8 @@ import pytz
 import json
 
 from datetime import datetime
-import anthropic
-api = "anthropic"
+import openai
+api = "openai"
 
 # Set page title and icon
 st.set_page_config(page_title="Interview - Anthropic", page_icon=config.AVATAR_INTERVIEWER)
