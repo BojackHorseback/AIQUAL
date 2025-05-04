@@ -1,11 +1,11 @@
-#UTILS.PY
+# Utils.py update streamlit
 
 import streamlit as st
 import hmac
 import time
 import io
 import os
-from datetime import datetime
+from datetime import datetime #added to potentially use later for transcript info
 from google.oauth2.service_account import Credentials 
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
@@ -36,6 +36,8 @@ def authenticate_google_drive():
 def upload_file_to_drive(service, file_path, file_name, mimetype='text/plain'):
     """Upload a file to a specific Google Drive folder."""
     
+    FOLDER_ID = "1-y9bGuI0nmK22CPXg804U5nZU3gA--lV"  # Your folder ID
+
     file_metadata = {
         'name': file_name,
         'parents': [FOLDER_ID]  # Upload into the specified folder
@@ -53,13 +55,24 @@ def upload_file_to_drive(service, file_path, file_name, mimetype='text/plain'):
     return file['id']
 
 def save_interview_data_to_drive(transcript_path):
-    """Save interview transcript to Google Drive."""
+    """Save interview transcript & timing data to Google Drive."""
     
     if st.session_state.username is None:
         # Define a fallback username with timestamp if none exists
         central_tz = pytz.timezone("America/Chicago")
         current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
         st.session_state.username = f"User_{current_datetime}"
+
+    # Before uploading the file, make sure it contains the full conversation
+    # This creates a fresh transcript with all messages to ensure completeness
+    if os.path.exists(transcript_path):
+        try:
+            with open(transcript_path, "w") as t:
+                # Skip the system prompt (first message) when saving the transcript
+                for message in st.session_state.messages[1:]:
+                    t.write(f"{message['role']}: {message['content']}\n\n")
+        except Exception as e:
+            st.error(f"Error updating transcript before upload: {str(e)}")
 
     service = authenticate_google_drive()  # Authenticate Drive API
 
@@ -69,13 +82,14 @@ def save_interview_data_to_drive(transcript_path):
     except Exception as e:
         st.error(f"Failed to upload files: {e}")
 
+# pulled over from anthropic version on 3/2
 def save_interview_data(username, transcripts_directory, times_directory=None, file_name_addition_transcript="", file_name_addition_time=""):
-    """Write interview data to disk with metadata."""
+    """Write interview data to disk."""
     # Ensure username is not None
     if username is None:
         central_tz = pytz.timezone("America/Chicago")
         current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
-        username = f"User_NoUID_{current_datetime}"
+        username = f"User_{current_datetime}"
         st.session_state.username = username
     
     # Ensure directories exist
@@ -83,32 +97,15 @@ def save_interview_data(username, transcripts_directory, times_directory=None, f
     if times_directory:
         os.makedirs(times_directory, exist_ok=True)
     
-    # Extract metadata from username
-    username_parts = username.split('_')
-    model_type = username_parts[0] if len(username_parts) > 0 else 'Unknown'
-    uid_part = username_parts[1] if len(username_parts) > 1 else 'NoUID'
-    
-    # Create filename
+    # Create proper file paths
     transcript_file = os.path.join(transcripts_directory, f"{username}{file_name_addition_transcript}.txt")
 
-    # Store chat transcript with metadata
+    # Store chat transcript
     try:
         with open(transcript_file, "w") as t:
-            # Write metadata header
-            central_tz = pytz.timezone("America/Chicago")
-            t.write("=== INTERVIEW METADATA ===\n")
-            t.write(f"Username: {username}\n")
-            t.write(f"Qualtrics UID: {uid_part}\n")
-            t.write(f"Timestamp: {datetime.now(central_tz).isoformat()}\n")
-            t.write(f"Model Used: {config.MODEL}\n")
-            t.write(f"API Type: {model_type.lower()}\n")
-            t.write(f"Message Count: {len(st.session_state.messages)}\n")
-            t.write("===========================\n\n")
-            
             # Skip the system prompt (first message) when saving the transcript
             for message in st.session_state.messages[1:]:
                 t.write(f"{message['role']}: {message['content']}\n\n")
-                
         return transcript_file
     except Exception as e:
         st.error(f"Error saving transcript: {str(e)}")
@@ -116,6 +113,7 @@ def save_interview_data(username, transcripts_directory, times_directory=None, f
         emergency_file = f"emergency_transcript_{username}.txt"
         try:
             with open(emergency_file, "w") as t:
+                # Skip the system prompt (first message) when saving the transcript
                 for message in st.session_state.messages[1:]:
                     t.write(f"{message['role']}: {message['content']}\n\n")
             return emergency_file
@@ -163,7 +161,5 @@ def check_if_interview_completed(directory, username):
     if username is None:
         return False
     if username != "testaccount":
-        # Check for the exact filename with the username
-        file_path = os.path.join(directory, f"{username}.txt")
-        return os.path.exists(file_path)
+        return os.path.exists(os.path.join(directory, f"{username}.txt"))
     return False
