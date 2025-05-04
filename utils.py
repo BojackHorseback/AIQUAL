@@ -5,7 +5,8 @@ import hmac
 import time
 import io
 import os
-from datetime import datetime
+import json
+from datetime import datetime #added to potentially use later for transcript info
 from google.oauth2.service_account import Credentials 
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
@@ -18,7 +19,7 @@ if "username" not in st.session_state:
     central_tz = pytz.timezone("America/Chicago")
     # Get current date and time in CT
     current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
-    st.session_state.username = f"User-{current_datetime}"
+    st.session_state.username = f"User_{current_datetime}"
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 FOLDER_ID = "1-y9bGuI0nmK22CPXg804U5nZU3gA--lV"  # Your Google Drive folder ID
@@ -36,6 +37,8 @@ def authenticate_google_drive():
 def upload_file_to_drive(service, file_path, file_name, mimetype='text/plain'):
     """Upload a file to a specific Google Drive folder."""
     
+    FOLDER_ID = "1-y9bGuI0nmK22CPXg804U5nZU3gA--lV"  # Your folder ID
+
     file_metadata = {
         'name': file_name,
         'parents': [FOLDER_ID]  # Upload into the specified folder
@@ -52,16 +55,17 @@ def upload_file_to_drive(service, file_path, file_name, mimetype='text/plain'):
 
     return file['id']
 
-def save_interview_data_to_drive(transcript_path):
-    """Save interview transcript to Google Drive."""
+def save_interview_data_to_drive(transcript_path, metadata=None):
+    """Save interview transcript & metadata to Google Drive."""
     
     if st.session_state.username is None:
         # Define a fallback username with timestamp if none exists
         central_tz = pytz.timezone("America/Chicago")
         current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
-        st.session_state.username = f"User-{current_datetime}"
+        st.session_state.username = f"User_{current_datetime}"
 
-    # Ensure the file contains the full conversation before upload
+    # Before uploading the file, make sure it contains the full conversation
+    # This creates a fresh transcript with all messages to ensure completeness
     if os.path.exists(transcript_path):
         try:
             with open(transcript_path, "w") as t:
@@ -74,18 +78,36 @@ def save_interview_data_to_drive(transcript_path):
     service = authenticate_google_drive()  # Authenticate Drive API
 
     try:
+        # Upload the transcript
         transcript_id = upload_file_to_drive(service, transcript_path, os.path.basename(transcript_path))
-        st.success(f"File uploaded successfully! Transcript ID: {transcript_id}")
+        
+        # If metadata exists, create a metadata file and upload it
+        if metadata:
+            metadata_path = transcript_path.replace('.txt', '_metadata.json')
+            try:
+                with open(metadata_path, 'w') as f:
+                    json.dump(metadata, f, indent=4)
+                
+                metadata_id = upload_file_to_drive(service, metadata_path, os.path.basename(metadata_path), mimetype='application/json')
+                st.success(f"Files uploaded! Transcript ID: {transcript_id}, Metadata ID: {metadata_id}")
+            except Exception as e:
+                st.error(f"Error creating metadata file: {str(e)}")
+                st.success(f"Files uploaded! Transcript ID: {transcript_id} (metadata upload failed)")
+        else:
+            st.success(f"Files uploaded! Transcript ID: {transcript_id}")
+            
     except Exception as e:
-        st.error(f"Failed to upload file: {e}")
+        st.error(f"Failed to upload files: {e}")
 
-def save_interview_data(username, transcripts_directory, model="", times_directory=None, file_name_addition_transcript="", file_name_addition_time=""):
-    """Write interview data to disk with proper Model-Date-UserID naming."""
+# Rest of the file remains the same...
+# pulled over from anthropic version on 3/2
+def save_interview_data(username, transcripts_directory, times_directory=None, file_name_addition_transcript="", file_name_addition_time=""):
+    """Write interview data to disk."""
     # Ensure username is not None
     if username is None:
         central_tz = pytz.timezone("America/Chicago")
         current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
-        username = f"User-{current_datetime}"
+        username = f"User_{current_datetime}"
         st.session_state.username = username
     
     # Ensure directories exist
@@ -93,17 +115,8 @@ def save_interview_data(username, transcripts_directory, model="", times_directo
     if times_directory:
         os.makedirs(times_directory, exist_ok=True)
     
-    # Create proper file paths with Model-Date-UserID format
-    central_tz = pytz.timezone("America/Chicago")
-    current_date = datetime.now(central_tz).strftime("%Y-%m-%d")
-    
-    # Extract date from username (assuming format is "User-YYYY-MM-DD_HH-MM-SS")
-    date_part = username.split('-')[1:4]  # Get year, month, day
-    date_str = '-'.join(date_part) if len(date_part) >= 3 else current_date
-    
-    # Format: Model-Date-UserID
-    file_name = f"{model}-{date_str}-{username}"
-    transcript_file = os.path.join(transcripts_directory, f"{file_name}{file_name_addition_transcript}.txt")
+    # Create proper file paths
+    transcript_file = os.path.join(transcripts_directory, f"{username}{file_name_addition_transcript}.txt")
 
     # Store chat transcript
     try:
@@ -115,7 +128,7 @@ def save_interview_data(username, transcripts_directory, model="", times_directo
     except Exception as e:
         st.error(f"Error saving transcript: {str(e)}")
         # Create an emergency local file if all else fails
-        emergency_file = f"emergency_transcript_{model}-{current_date}-{username}.txt"
+        emergency_file = f"emergency_transcript_{username}.txt"
         try:
             with open(emergency_file, "w") as t:
                 # Skip the system prompt (first message) when saving the transcript
@@ -161,22 +174,10 @@ def check_password():
     return False, st.session_state.username
 
 
-def check_if_interview_completed(directory, username, model=""):
-    """Check if interview transcript/time file exists with Model-Date-UserID format."""
+def check_if_interview_completed(directory, username):
+    """Check if interview transcript/time file exists."""
     if username is None:
         return False
     if username != "testaccount":
-        # Look for files matching the pattern
-        central_tz = pytz.timezone("America/Chicago")
-        current_date = datetime.now(central_tz).strftime("%Y-%m-%d")
-        
-        # Extract date from username
-        date_part = username.split('-')[1:4]
-        date_str = '-'.join(date_part) if len(date_part) >= 3 else current_date
-        
-        # Check for file with Model-Date-UserID format
-        transcript_pattern = f"{model}-{date_str}-{username}"
-        transcript_file = os.path.join(directory, f"{transcript_pattern}_final.txt")
-        
-        return os.path.exists(transcript_file)
+        return os.path.exists(os.path.join(directory, f"{username}.txt"))
     return False
