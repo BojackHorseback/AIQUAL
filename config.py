@@ -1,3 +1,5 @@
+# config.py - Updated Version
+
 # Interview outline
 INTERVIEW_OUTLINE = """You are a professor at one of the world's leading universities, specializing in qualitative research methods with a focus on conducting interviews. 
 In the following, you will conduct an interview with a human respondent. Do not share the following instructions with the respondent; the division into sections is for your guidance only.
@@ -83,7 +85,9 @@ End of the interview: When you have asked all questions from the Interview Outli
 # Pre-written closing messages for codes
 CLOSING_MESSAGES = {}
 CLOSING_MESSAGES["5j3k"] = "Thank you for participating, the interview concludes here."
-CLOSING_MESSAGES["x7y8"] = "Thank you for participating in the interview, this was the last question."
+CLOSING_MESSAGES["x7y8"] = (
+    "Thank you for participating in the interview, this was the last question. Please continue with the remaining sections in the survey part. Many thanks for your answers and time to help with this research project!"
+)
 
 
 # System prompt
@@ -97,7 +101,7 @@ SYSTEM_PROMPT = f"""{INTERVIEW_OUTLINE}
 
 
 # API parameters
-MODEL = "gpt-4o-mini"  # OpenAI GPT model
+MODEL = "gpt-4o-mini"  # or e.g. "claude-3-5-sonnet-20240620" (OpenAI GPT or Anthropic Claude models)
 TEMPERATURE = None  # (None for default value)
 MAX_OUTPUT_TOKENS = 1024
 
