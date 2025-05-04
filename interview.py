@@ -16,6 +16,11 @@ from datetime import datetime
 from openai import OpenAI
 api = "openai"
 
+# Capture metadata from Qualtrics
+query_params = st.query_params
+qualtrics_response_id = query_params.get("ResponseID", ["N/A"])[0]
+st.session_state.qualtrics_response_id = qualtrics_response_id
+
 # Set page title and icon
 st.set_page_config(page_title="Interview - OpenAI", page_icon=config.AVATAR_INTERVIEWER)
 
@@ -28,13 +33,13 @@ current_datetime = datetime.now(central_tz).strftime("%Y-%m-%d_%H-%M-%S")
 # Set the username with date and time
 if "username" not in st.session_state or st.session_state.username is None:
     st.session_state.username = f"OpenAI_{current_datetime}"
+    st.session_state.interview_start_time = datetime.now(central_tz).strftime("%Y-%m-%d %H:%M:%S %Z")
 
-    
 # Create directories if they do not already exist
 for directory in [config.TRANSCRIPTS_DIRECTORY, config.TIMES_DIRECTORY, config.BACKUPS_DIRECTORY]:
     os.makedirs(directory, exist_ok=True)
 
-# Initialize session state
+# Initialise session state
 st.session_state.setdefault("interview_active", True)
 st.session_state.setdefault("messages", [])
 
@@ -48,7 +53,6 @@ if interview_previously_completed and not st.session_state.messages:
     st.session_state.interview_active = False
     completed_message = "Interview already completed."
     
-
 # Add 'Quit' button to dashboard
 col1, col2 = st.columns([0.85, 0.15])
 with col2:
@@ -74,7 +78,6 @@ if api == "openai":
     client = OpenAI(api_key=st.secrets["API_KEY"])
     api_kwargs = {"stream": True}
 elif api == "anthropic":
-    import anthropic
     client = anthropic.Anthropic(api_key=st.secrets["API_KEY"])
     api_kwargs = {"system": config.SYSTEM_PROMPT}
 
