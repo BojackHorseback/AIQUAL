@@ -18,20 +18,28 @@ api = "openai"
 
 # Capture UID from Qualtrics URL parameter
 try:
-    if hasattr(st, 'query_params'):
-        uid_param = st.query_params.get("uid")
-        if isinstance(uid_param, list) and len(uid_param) > 0:
-            qualtrics_response_id = uid_param[0]
-        elif uid_param:
-            qualtrics_response_id = uid_param
-        else:
-            qualtrics_response_id = "N/A"
-    else:
-        qualtrics_response_id = "N/A"
+    # Get query parameters from the URL
+    query_params = st.query_params
+    
+    # Check for various UID parameter names
+    possible_uid_names = ["uid", "UID", "user_id", "userId", "participant_id", "ResponseID"]
+    qualtrics_response_id = None
+    
+    for param_name in possible_uid_names:
+        uid_value = query_params.get(param_name)
+        if uid_value is not None:
+            # Handle case where query param might be a list
+            if isinstance(uid_value, list) and len(uid_value) > 0:
+                qualtrics_response_id = uid_value[0]
+            else:
+                qualtrics_response_id = str(uid_value)
+            break
+    
+    # Store in session state with consistent naming
+    st.session_state.response_id = qualtrics_response_id  # Use 'response_id' to match utils.py
+    
 except Exception as e:
-    qualtrics_response_id = "N/A"
-
-st.session_state.qualtrics_response_id = qualtrics_response_id
+    st.session_state.response_id = None
 
 # Store the actual model name from config
 st.session_state.actual_model = config.MODEL
